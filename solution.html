@@ -27,7 +27,7 @@
                 applyTitle(cachedMainTitle);
             } else {
                 // 2. 캐시가 없으면 메인페이지('/')를 비동기로 호출하여 title 태그 추출
-                fetch('/')
+                fetch('/index.html')
                     .then(response => {
                         if (!response.ok) throw new Error('메인페이지 로드 실패');
                         return response.text();

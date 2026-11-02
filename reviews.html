@@ -15,7 +15,6 @@
             const currentUrl = window.location.href.split('#')[0].split('?')[0];
             const origin = window.location.origin;
 
-            // [1] Canonical (표준 URL) 동적 설정
             let canonical = document.querySelector('link[rel="canonical"]');
             if (!canonical) {
                 canonical = document.createElement('link');
@@ -24,7 +23,6 @@
             }
             canonical.setAttribute('href', currentUrl);
 
-            // [2] 메타태그 생성 및 갱신 헬퍼 함수
             function setMeta(nameOrProp, isProp, content) {
                 if (!content) return;
                 const attr = isProp ? 'property' : 'name';
@@ -37,7 +35,6 @@
                 meta.setAttribute('content', content);
             }
 
-            // [3] /index.html 파일의 메타정보를 실시간으로 읽어와 세부페이지에 결합
             fetch('/index.html')
                 .then(res => {
                     if (!res.ok) throw new Error('/index.html 응답 없음');
@@ -47,23 +44,17 @@
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(html, 'text/html');
 
-                    // 메인 /index.html 에서 타이틀 추출 및 브랜드명 정제
                     let rawTitle = doc.querySelector('title')?.innerText?.trim() || window.location.hostname;
                     let brandName = rawTitle.split(/[-–—|]/)[0].trim() || rawTitle;
-
-                    // 메인 대표 이미지(og:image) 상속 추출
                     let mainOgImg = doc.querySelector('meta[property="og:image"]')?.content || '';
 
-                    // ★ [타이틀 결합] 메인 타이틀을 세부페이지 타이틀 맨 앞에 자동 삽입
                     const pageSubTitle = "고객후기 | 실제 이용자 리뷰";
                     document.title = `${brandName} | ${pageSubTitle}`;
 
-                    // 페이지 내부 브랜드명 텍스트 자동 동기화
                     document.querySelectorAll('.auto-brand-name').forEach(el => {
                         el.textContent = brandName;
                     });
 
-                    // OpenGraph 태그 동적 생성 (SNS 링크 미리보기 최적화)
                     setMeta('og:type', true, 'article');
                     setMeta('og:site_name', true, brandName);
                     setMeta('og:title', true, `${brandName} - 고객후기`);
@@ -71,17 +62,14 @@
                     setMeta('og:url', true, currentUrl);
                     if (mainOgImg) setMeta('og:image', true, mainOgImg);
 
-                    // 구글/네이버 상위노출용 JSON-LD 구조화 데이터 주입
                     injectStructuredData(origin, currentUrl, brandName);
                 })
                 .catch(() => {
-                    // 비상 시 도메인명을 기반으로 안전하게 대체 작동
                     const hostBrand = window.location.hostname;
                     document.title = `${hostBrand} | 고객후기 및 실제 이용자 리뷰`;
                     injectStructuredData(origin, currentUrl, hostBrand);
                 });
 
-            // [4] 구조화 데이터(JSON-LD) 생성 함수 (브레드크럼 + 리뷰 스키마)
             function injectStructuredData(originUrl, pageUrl, name) {
                 const schema = {
                     "@context": "https://schema.org",
@@ -288,20 +276,48 @@
             justify-content: space-between; 
             margin-bottom: 12px; 
         }
-        .review-score-badge {
+
+        /* ★ [개선된 별점 및 인증 뱃지 디자인] */
+        .review-top-left {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            color: #0f172a;
-            font-size: 11.5px;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            padding: 3px 8px;
-            border-radius: 6px;
+            gap: 8px;
         }
-        .review-score-badge svg { color: #f59e0b; fill: #f59e0b; }
+        .stars-group {
+            display: inline-flex;
+            gap: 2px;
+            color: #f59e0b;
+        }
+        .stars-group svg {
+            width: 14px;
+            height: 14px;
+            fill: #f59e0b;
+        }
+        .review-score-num {
+            font-size: 13.5px;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.01em;
+        }
+        .verified-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+        .verified-pill svg {
+            width: 11px;
+            height: 11px;
+            stroke: #3b82f6;
+            stroke-width: 2.5;
+            fill: none;
+        }
+
         .reviewer-meta { 
             font-size: 12px; 
             color: #94a3b8; 
@@ -334,6 +350,11 @@
             .header h1 { font-size: 22px; }
             .header p { font-size: 13.5px; }
             .review-card { padding: 18px 16px; }
+            .review-top {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
         }
     </style>
 </head>
@@ -380,38 +401,73 @@
 
             <!-- 실제 고객 리뷰 리스트 -->
             <section class="review-list" aria-label="고객 이용 후기 목록">
+                
+                <!-- 리뷰 카드 1 -->
                 <article class="review-card">
                     <div class="review-top">
-                        <span class="review-score-badge">
-                            <svg width="12" height="12" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                            VERIFIED 5.0
-                        </span>
+                        <div class="review-top-left">
+                            <div class="stars-group" aria-label="평점 5점 만점">
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                            </div>
+                            <span class="review-score-num">5.0</span>
+                            <span class="verified-pill">
+                                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                이용 인증
+                            </span>
+                        </div>
                         <span class="reviewer-meta">실제 이용 고객 김*진 님</span>
                     </div>
                     <p class="review-text">“불필요한 대기 시간 없이 빠르고 명확하게 필요한 내용을 파악할 수 있었습니다. 군더더기 없는 프로세스 덕분에 시간을 크게 절약했습니다.”</p>
                 </article>
 
+                <!-- 리뷰 카드 2 -->
                 <article class="review-card">
                     <div class="review-top">
-                        <span class="review-score-badge">
-                            <svg width="12" height="12" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                            VERIFIED 5.0
-                        </span>
+                        <div class="review-top-left">
+                            <div class="stars-group" aria-label="평점 5점 만점">
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                            </div>
+                            <span class="review-score-num">5.0</span>
+                            <span class="verified-pill">
+                                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                이용 인증
+                            </span>
+                        </div>
                         <span class="reviewer-meta">실제 이용 고객 이*훈 님</span>
                     </div>
                     <p class="review-text">“이용 방법이 직관적이고 안내가 체계적이어서 첫 이용임에도 전혀 어려움이 없었습니다. 만족도가 매우 높아 지속적으로 재방문하고 있습니다.”</p>
                 </article>
 
+                <!-- 리뷰 카드 3 -->
                 <article class="review-card">
                     <div class="review-top">
-                        <span class="review-score-badge">
-                            <svg width="12" height="12" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                            VERIFIED 5.0
-                        </span>
+                        <div class="review-top-left">
+                            <div class="stars-group" aria-label="평점 5점 만점">
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                            </div>
+                            <span class="review-score-num">5.0</span>
+                            <span class="verified-pill">
+                                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                이용 인증
+                            </span>
+                        </div>
                         <span class="reviewer-meta">실제 이용 고객 박*영 님</span>
                     </div>
                     <p class="review-text">“궁금했던 사항들이 투명하게 정리되어 있어 신뢰가 갔습니다. 전반적인 서비스 품질과 완성도가 기대 이상입니다.”</p>
                 </article>
+
             </section>
         </main>
 
